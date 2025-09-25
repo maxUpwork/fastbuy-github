@@ -522,31 +522,32 @@ export default function FastBuy() {
             <div className="challenge-buy__add-options">
                 <div className="challenge-buy__title">Additional Options</div>
 
-                <div className={`input-wrapper ${promoError ? 'error' : ''}`}>
-                    <span className="label">Promo Code</span>
-                    <div className="input promo-input">
-                        <input
-                            type="text"
-                            id="promo-code"
-                            placeholder="Enter the Code"
-                            autoComplete="off"
-                            value={promo}
-                            onChange={(e) => { setPromo(e.target.value); setPromoError(false); setPromoHint(''); }}
-                            onBlur={() => setTouched((t) => ({ ...t, promo: true }))}
-                            aria-invalid={promoError}
-                        />
-                        <button id="promo-apply" className="code-submit button" type="button" onClick={applyPromo}>
-                            Apply
-                        </button>
-                    </div>
-                    {!!promoHint && (
+                <div className="promo-wrap">
+                    <div className={`input-wrapper ${promoError ? 'invalid' : ''}`}>
+                        <span className="label">Promo Code</span>
+                        <div className="input promo-input">
+                            <input
+                                type="text"
+                                id="promo-code"
+                                placeholder="Enter the Code"
+                                autoComplete="off"
+                                value={promo}
+                                onChange={(e) => { setPromo(e.target.value); setPromoError(false); setPromoHint(''); }}
+                                onBlur={() => setTouched((t) => ({ ...t, promo: true }))}
+                                aria-invalid={promoError}
+                            />
+                            <button id="promo-apply" className="code-submit button" type="button" onClick={applyPromo}>
+                                Apply
+                            </button>
+                        </div>
+                        {/* {!!promoHint && (
                         <div className="hint" id="promo-hint" aria-live="polite">
                             {promoHint}
                         </div>
-                    )}
-                    {promoError && <span className="error">Invalid promo code</span>}
+                    )} */}
+                        {promoError && <span className="error">Invalid promo code</span>}
+                    </div>
                 </div>
-
                 {[...upsalesByCondition.entries()].map(([condition, group]) => (
                     <div className="challange-buy__select-wrap" key={condition}>
                         <span className='label'>{group.label}</span>

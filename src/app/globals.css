@@ -656,6 +656,9 @@ button[aria-disabled="true"] {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.promo-wrap {
   margin-bottom: 16px;
 }
 
