@@ -174,6 +174,16 @@ export default function FastBuy() {
         return p;
     }
 
+
+    function formatMoneyShort(n: number) {
+        if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(n % 1_000_000_000 ? 1 : 0)}b`;
+        if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)}m`;
+        if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 ? (n < 10_000 ? 1 : 0) : 0)}k`;
+        return `${n}`;
+    }
+
+
+
     // ===== Validation =====
     function computeErrors() {
         const e: Record<string, string> = {};
@@ -395,11 +405,13 @@ export default function FastBuy() {
                                     checked={capital === cap}
                                     onChange={() => setCapital(cap)}
                                 />
-                                <label htmlFor={id}>${cap.toLocaleString()}</label>
+                                {/* короткий формат в тексте, полное значение — во всплывающей подсказке */}
+                                <label htmlFor={id} title={`$${cap.toLocaleString()}`}>${formatMoneyShort(cap)}</label>
                             </div>
                         );
                     })}
                 </div>
+
 
 
                 <div className="challenge-buy__table">
@@ -512,7 +524,7 @@ export default function FastBuy() {
 
                 <div className={`input-wrapper ${promoError ? 'error' : ''}`}>
                     <span className="label">Promo Code</span>
-                    <div className="input">
+                    <div className="input promo-input">
                         <input
                             type="text"
                             id="promo-code"
@@ -537,7 +549,7 @@ export default function FastBuy() {
 
                 {[...upsalesByCondition.entries()].map(([condition, group]) => (
                     <div className="challange-buy__select-wrap" key={condition}>
-                        <span>{group.label}</span>
+                        <span className='label'>{group.label}</span>
                         <select
                             value={selectedUpsales[condition] || ''}
                             onChange={(e) =>
@@ -552,6 +564,26 @@ export default function FastBuy() {
                         </select>
                     </div>
                 ))}
+
+
+                <div className='checkbox'>
+                    <input
+                        type="checkbox"
+                        name="sub"
+                        id="sub"
+                    />
+                    <label htmlFor="sub">Get Subscription for Trading News</label>
+                </div>
+
+                <div className='checkbox'>
+                    <input
+                        type="checkbox"
+                        name="allow"
+                        id="allow"
+                    />
+                    <label htmlFor="allow">Allow to Trade on Weekends</label>
+                </div>
+
 
                 <div className="total">
                     <span>Total Price:</span>
