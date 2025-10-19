@@ -1,4 +1,11 @@
+// src/app/fast-buy/page.tsx
+import { Suspense } from 'react';
 import FastBuy from '@/components/FastBuy';
+
+// Говорим Next.js рендерить страницу динамически (без статического пререндера/кэша)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'default-no-store';
 
 export default function FastBuyPage() {
     return (
@@ -20,7 +27,7 @@ export default function FastBuyPage() {
                                         src="https://propxfine.com/wp-content/plugins/polylang/flags/de.png"
                                         alt="Deutsch"
                                         className="current-language"
-                                        width="20"
+                                        width={20}
                                     />
                                     <span>de</span>
 
@@ -52,49 +59,49 @@ export default function FastBuyPage() {
                                         <img
                                             src="https://propxfine.com/wp-content/plugins/polylang/flags/gb.png"
                                             alt="English"
-                                            width="24"
+                                            width={24}
                                         />
                                     </a>
                                     <a href="https://propxfine.com/ru/" className="dropdown-link w-dropdown-link">
                                         <img
                                             src="https://propxfine.com/wp-content/plugins/polylang/flags/ru.png"
                                             alt="Русский"
-                                            width="24"
+                                            width={24}
                                         />
                                     </a>
                                     <a href="https://propxfine.com/kk/" className="dropdown-link w-dropdown-link">
                                         <img
                                             src="https://propxfine.com/wp-content/plugins/polylang/flags/kz.png"
                                             alt="Kazakh"
-                                            width="24"
+                                            width={24}
                                         />
                                     </a>
                                     <a href="https://propxfine.com/ua/" className="dropdown-link w-dropdown-link">
                                         <img
                                             src="https://propxfine.com/wp-content/plugins/polylang/flags/ua.png"
                                             alt="Українська"
-                                            width="24"
+                                            width={24}
                                         />
                                     </a>
                                     <a href="https://propxfine.com/zh/" className="dropdown-link w-dropdown-link">
                                         <img
                                             src="https://propxfine.com/wp-content/plugins/polylang/flags/cn.png"
                                             alt="中文 (中国)"
-                                            width="24"
+                                            width={24}
                                         />
                                     </a>
                                     <a href="https://propxfine.com/es/" className="dropdown-link w-dropdown-link">
                                         <img
                                             src="https://propxfine.com/wp-content/plugins/polylang/flags/es.png"
                                             alt="Español"
-                                            width="24"
+                                            width={24}
                                         />
                                     </a>
                                     <a href="https://propxfine.com/uz/" className="dropdown-link w-dropdown-link">
                                         <img
                                             src="https://propxfine.com/wp-content/plugins/polylang/flags/uz.png"
                                             alt="Oʻzbek"
-                                            width="24"
+                                            width={24}
                                         />
                                     </a>
                                 </div>
@@ -106,9 +113,13 @@ export default function FastBuyPage() {
 
             <main className="fast-buy" id="fast-buy">
                 <div className="container">
-                    <h1>Choose the <span>best</span>  plan</h1>
+                    <h1>
+                        Choose the <span>best</span> plan
+                    </h1>
                     <div className="fast-buy__inner">
-                        <FastBuy />
+                        <Suspense fallback={<div />}>
+                            <FastBuy />
+                        </Suspense>
                     </div>
                 </div>
             </main>
