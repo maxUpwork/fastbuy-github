@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+/* ===== Types ===== */
 type PaymentMethod = {
-    id: string;            // "198:usdt_trx"
+    id: string;
     merchantId: number;
-    slug: string;          // "yobopay" | "coinsbuy"
+    slug: string;
     currency: string | null;
     integrationId: number | null;
-    title: string;         // для <option>
+    title: string;
     imageUrl: string | null;
     openNewTab: boolean;
     external: boolean;
@@ -18,16 +19,14 @@ type CatalogItem = {
     id: string;
     challengeTypeId: string;
     title: string;
-    platform: string;   // "MT5" | "MATCHTRADER" | ...
-    challenge: string;  // "1 PHASE" | ...
-    capital: number;    // 2000 | ...
+    platform: string;
+    challenge: string;
+    capital: number;
     price: number | null;
-
-    // ХАРАКТЕРИСТИКИ ДЛЯ ТАБЛИЦЫ
-    permittedDailyLoss?: number | string | null;  // Permitted Daily Loss
-    permittedTotalLoss?: number | string | null;  // Permitted Total Loss
-    profitableDays?: number | null;               // ProfitableDays
-    duration?: number | null;                     // Duration (дни)
+    permittedDailyLoss?: number | string | null;
+    permittedTotalLoss?: number | string | null;
+    profitableDays?: number | null;
+    duration?: number | null;
 };
 
 type Upsale = {
@@ -52,8 +51,151 @@ const UPSALE_LABEL: Record<string, string> = {
     weekendTradingAllowed: 'Allow to Trade on Weekends',
 };
 
+/* ===== Banner config ===== */
+const BANNERS: Record<string, { cls: string; img: string; title: string; text: string }> = {
+    '1 PHASE': {
+        cls: 'plan-banner--stealth',
+        img: 'https://propxfine.com/wp-content/uploads/2025/08/mid.svg',
+        title: 'Stealth',
+        text: 'Seien Sie schneller als der Markt',
+    },
+    '2 PHASE': {
+        cls: 'plan-banner--basic',
+        img: 'https://propxfine.com/wp-content/uploads/2025/08/slow.svg',
+        title: 'Basic',
+        text: 'Move towards yours goals without haste',
+    },
+    'XFINE MASTER': {
+        cls: 'plan-banner--cosmo',
+        img: 'https://propxfine.com/wp-content/uploads/2025/08/fast.svg',
+        title: 'Cosmo',
+        text: 'Get ahead of the action with cosmic speed',
+    },
+};
+
+function getBannerInfo(challenge: string | undefined) {
+    if (!challenge) return BANNERS['1 PHASE'];
+    const key = /(MASTER|PHASE\s*3|3\s*PHASE)/i.test(challenge)
+        ? 'XFINE MASTER'
+        : /2/.test(challenge)
+            ? '2 PHASE'
+            : '1 PHASE';
+    return BANNERS[key];
+}
+
+/* ===== Helpers ===== */
+function shortK(n?: number | null) {
+    if (!n || !isFinite(n)) return '—';
+    if (n >= 1_000_000) return `${Math.round(n / 1_000_000)}m`;
+    if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+    return `${Math.round(n)}`;
+}
+
+function platformLabel(p: string) {
+    if (p?.toUpperCase() === 'MT5') return 'Meta Trader 5';
+    if (p?.toUpperCase() === 'MATCHTRADER') return 'Match-Trader';
+    return p;
+}
+
+function formatMoneyShort(n: number) {
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(n % 1_000_000_000 ? 1 : 0)}b`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)}m`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 ? (n < 10_000 ? 1 : 0) : 0)}k`;
+    return `${n}`;
+}
+
+function fmtUsd(x: number | string | null | undefined) {
+    if (x == null || x === '') return '—';
+    const n = typeof x === 'string' ? Number(x) : x;
+    if (!isFinite(n)) return String(x);
+    return `$${formatMoneyShort(n)}`;
+}
+
+function fmtDays(x: number | string | null | undefined) {
+    if (x == null || x === '') return '—';
+    const n = typeof x === 'string' ? Number(x) : x;
+    if (!isFinite(n)) return String(x);
+    return `${n} day${Number(n) === 1 ? '' : 's'}`;
+}
+
+/* ===== Country & Language lists ===== */
+const COUNTRIES: Array<{ code: string; name: string }> = [
+    { code: 'AF', name: 'Afghanistan' }, { code: 'AL', name: 'Albania' }, { code: 'DZ', name: 'Algeria' },
+    { code: 'AD', name: 'Andorra' }, { code: 'AO', name: 'Angola' }, { code: 'AG', name: 'Antigua and Barbuda' },
+    { code: 'AR', name: 'Argentina' }, { code: 'AM', name: 'Armenia' }, { code: 'AU', name: 'Australia' },
+    { code: 'AT', name: 'Austria' }, { code: 'AZ', name: 'Azerbaijan' }, { code: 'BS', name: 'Bahamas' },
+    { code: 'BH', name: 'Bahrain' }, { code: 'BD', name: 'Bangladesh' }, { code: 'BB', name: 'Barbados' },
+    { code: 'BY', name: 'Belarus' }, { code: 'BE', name: 'Belgium' }, { code: 'BZ', name: 'Belize' },
+    { code: 'BJ', name: 'Benin' }, { code: 'BT', name: 'Bhutan' }, { code: 'BO', name: 'Bolivia' },
+    { code: 'BA', name: 'Bosnia and Herzegovina' }, { code: 'BW', name: 'Botswana' }, { code: 'BR', name: 'Brazil' },
+    { code: 'BN', name: 'Brunei' }, { code: 'BG', name: 'Bulgaria' }, { code: 'BF', name: 'Burkina Faso' },
+    { code: 'BI', name: 'Burundi' }, { code: 'KH', name: 'Cambodia' }, { code: 'CM', name: 'Cameroon' },
+    { code: 'CA', name: 'Canada' }, { code: 'CV', name: 'Cape Verde' }, { code: 'CF', name: 'Central African Republic' },
+    { code: 'TD', name: 'Chad' }, { code: 'CL', name: 'Chile' }, { code: 'CN', name: 'China' },
+    { code: 'CO', name: 'Colombia' }, { code: 'KM', name: 'Comoros' }, { code: 'CG', name: 'Congo' },
+    { code: 'CD', name: 'Congo, Democratic Republic' }, { code: 'CR', name: 'Costa Rica' },
+    { code: 'CI', name: "Côte d'Ivoire" }, { code: 'HR', name: 'Croatia' }, { code: 'CU', name: 'Cuba' },
+    { code: 'CY', name: 'Cyprus' }, { code: 'CZ', name: 'Czechia' }, { code: 'DK', name: 'Denmark' },
+    { code: 'DJ', name: 'Djibouti' }, { code: 'DM', name: 'Dominica' }, { code: 'DO', name: 'Dominican Republic' },
+    { code: 'EC', name: 'Ecuador' }, { code: 'EG', name: 'Egypt' }, { code: 'SV', name: 'El Salvador' },
+    { code: 'GQ', name: 'Equatorial Guinea' }, { code: 'ER', name: 'Eritrea' }, { code: 'EE', name: 'Estonia' },
+    { code: 'SZ', name: 'Eswatini' }, { code: 'ET', name: 'Ethiopia' }, { code: 'FJ', name: 'Fiji' },
+    { code: 'FI', name: 'Finland' }, { code: 'FR', name: 'France' }, { code: 'GA', name: 'Gabon' },
+    { code: 'GM', name: 'Gambia' }, { code: 'GE', name: 'Georgia' }, { code: 'DE', name: 'Germany' },
+    { code: 'GH', name: 'Ghana' }, { code: 'GR', name: 'Greece' }, { code: 'GD', name: 'Grenada' },
+    { code: 'GT', name: 'Guatemala' }, { code: 'GN', name: 'Guinea' }, { code: 'GW', name: 'Guinea-Bissau' },
+    { code: 'GY', name: 'Guyana' }, { code: 'HT', name: 'Haiti' }, { code: 'HN', name: 'Honduras' },
+    { code: 'HU', name: 'Hungary' }, { code: 'IS', name: 'Iceland' }, { code: 'IN', name: 'India' },
+    { code: 'ID', name: 'Indonesia' }, { code: 'IR', name: 'Iran' }, { code: 'IQ', name: 'Iraq' },
+    { code: 'IE', name: 'Ireland' }, { code: 'IL', name: 'Israel' }, { code: 'IT', name: 'Italy' },
+    { code: 'JM', name: 'Jamaica' }, { code: 'JP', name: 'Japan' }, { code: 'JO', name: 'Jordan' },
+    { code: 'KZ', name: 'Kazakhstan' }, { code: 'KE', name: 'Kenya' }, { code: 'KI', name: 'Kiribati' },
+    { code: 'KR', name: 'Korea, Republic of' }, { code: 'KW', name: 'Kuwait' }, { code: 'KG', name: 'Kyrgyzstan' },
+    { code: 'LA', name: 'Lao PDR' }, { code: 'LV', name: 'Latvia' }, { code: 'LB', name: 'Lebanon' },
+    { code: 'LS', name: 'Lesotho' }, { code: 'LR', name: 'Liberia' }, { code: 'LY', name: 'Libya' },
+    { code: 'LI', name: 'Liechtenstein' }, { code: 'LT', name: 'Lithuania' }, { code: 'LU', name: 'Luxembourg' },
+    { code: 'MG', name: 'Madagascar' }, { code: 'MW', name: 'Malawi' }, { code: 'MY', name: 'Malaysia' },
+    { code: 'MV', name: 'Maldives' }, { code: 'ML', name: 'Mali' }, { code: 'MT', name: 'Malta' },
+    { code: 'MH', name: 'Marshall Islands' }, { code: 'MR', name: 'Mauritania' }, { code: 'MU', name: 'Mauritius' },
+    { code: 'MX', name: 'Mexico' }, { code: 'FM', name: 'Micronesia' }, { code: 'MD', name: 'Moldova' },
+    { code: 'MC', name: 'Monaco' }, { code: 'MN', name: 'Mongolia' }, { code: 'ME', name: 'Montenegro' },
+    { code: 'MA', name: 'Morocco' }, { code: 'MZ', name: 'Mozambique' }, { code: 'MM', name: 'Myanmar' },
+    { code: 'NA', name: 'Namibia' }, { code: 'NR', name: 'Nauru' }, { code: 'NP', name: 'Nepal' },
+    { code: 'NL', name: 'Netherlands' }, { code: 'NZ', name: 'New Zealand' }, { code: 'NI', name: 'Nicaragua' },
+    { code: 'NE', name: 'Niger' }, { code: 'NG', name: 'Nigeria' }, { code: 'MK', name: 'North Macedonia' },
+    { code: 'NO', name: 'Norway' }, { code: 'OM', name: 'Oman' }, { code: 'PK', name: 'Pakistan' },
+    { code: 'PW', name: 'Palau' }, { code: 'PA', name: 'Panama' }, { code: 'PG', name: 'Papua New Guinea' },
+    { code: 'PY', name: 'Paraguay' }, { code: 'PE', name: 'Peru' }, { code: 'PH', name: 'Philippines' },
+    { code: 'PL', name: 'Poland' }, { code: 'PT', name: 'Portugal' }, { code: 'QA', name: 'Qatar' },
+    { code: 'RO', name: 'Romania' }, { code: 'RU', name: 'Russia' }, { code: 'RW', name: 'Rwanda' },
+    { code: 'KN', name: 'Saint Kitts and Nevis' }, { code: 'LC', name: 'Saint Lucia' }, { code: 'VC', name: 'Saint Vincent and the Grenadines' },
+    { code: 'WS', name: 'Samoa' }, { code: 'SM', name: 'San Marino' }, { code: 'ST', name: 'Sao Tome and Principe' },
+    { code: 'SA', name: 'Saudi Arabia' }, { code: 'SN', name: 'Senegal' }, { code: 'RS', name: 'Serbia' },
+    { code: 'SC', name: 'Seychelles' }, { code: 'SL', name: 'Sierra Leone' }, { code: 'SG', name: 'Singapore' },
+    { code: 'SK', name: 'Slovakia' }, { code: 'SI', name: 'Slovenia' }, { code: 'SB', name: 'Solomon Islands' },
+    { code: 'SO', name: 'Somalia' }, { code: 'ZA', name: 'South Africa' }, { code: 'ES', name: 'Spain' },
+    { code: 'LK', name: 'Sri Lanka' }, { code: 'SD', name: 'Sudan' }, { code: 'SR', name: 'Suriname' },
+    { code: 'SE', name: 'Sweden' }, { code: 'CH', name: 'Switzerland' }, { code: 'SY', name: 'Syria' },
+    { code: 'TW', name: 'Taiwan' }, { code: 'TJ', name: 'Tajikistan' }, { code: 'TZ', name: 'Tanzania' },
+    { code: 'TH', name: 'Thailand' }, { code: 'TL', name: 'Timor-Leste' }, { code: 'TG', name: 'Togo' },
+    { code: 'TO', name: 'Tonga' }, { code: 'TT', name: 'Trinidad and Tobago' }, { code: 'TN', name: 'Tunisia' },
+    { code: 'TR', name: 'Türkiye' }, { code: 'TM', name: 'Turkmenistan' }, { code: 'TV', name: 'Tuvalu' },
+    { code: 'UG', name: 'Uganda' }, { code: 'UA', name: 'Ukraine' }, { code: 'AE', name: 'United Arab Emirates' },
+    { code: 'GB', name: 'United Kingdom' }, { code: 'US', name: 'United States' }, { code: 'UY', name: 'Uruguay' },
+    { code: 'UZ', name: 'Uzbekistan' }, { code: 'VU', name: 'Vanuatu' }, { code: 'VE', name: 'Venezuela' },
+    { code: 'VN', name: 'Viet Nam' }, { code: 'YE', name: 'Yemen' }, { code: 'ZM', name: 'Zambia' }, { code: 'ZW', name: 'Zimbabwe' },
+];
+
+const LANGS: Array<{ code: string; name: string }> = [
+    { code: 'en', name: 'English' }, { code: 'de', name: 'Deutsch' }, { code: 'fr', name: 'Français' },
+    { code: 'es', name: 'Español' }, { code: 'pt', name: 'Português' }, { code: 'it', name: 'Italiano' },
+    { code: 'pl', name: 'Polski' }, { code: 'uk', name: 'Українська' }, { code: 'ru', name: 'Русский' },
+    { code: 'kk', name: 'Қазақ' }, { code: 'tr', name: 'Türkçe' }, { code: 'zh', name: '中文' },
+    { code: 'ar', name: 'العربية' },
+];
+
+/* ===== Component ===== */
 export default function FastBuy() {
-    // ===== Server data =====
     const [platforms, setPlatforms] = useState<string[]>([]);
     const [challenges, setChallenges] = useState<string[]>([]);
     const [capitals, setCapitals] = useState<number[]>([]);
@@ -61,19 +203,16 @@ export default function FastBuy() {
     const [upsales, setUpsales] = useState<Upsale[]>([]);
     const [methods, setMethods] = useState<PaymentMethod[]>([]);
 
-    // ===== Selections =====
-    const [platform, setPlatform] = useState<string>('ALL'); // All by default
+    const [platform, setPlatform] = useState<string>('ALL');
     const [challenge, setChallenge] = useState<string>('');
     const [capital, setCapital] = useState<number | null>(null);
     const [paymentMethod, setPaymentMethod] = useState('');
 
-    // ===== Promo =====
     const [promo, setPromo] = useState('');
     const [promoHint, setPromoHint] = useState('');
     const [promoPrice, setPromoPrice] = useState<number | null>(null);
     const [promoError, setPromoError] = useState<boolean>(false);
 
-    // ===== Form fields =====
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
@@ -84,14 +223,10 @@ export default function FastBuy() {
     const [password2, setPassword2] = useState('');
     const [agree, setAgree] = useState(false);
 
-    // ===== Validation state =====
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [touched, setTouched] = useState<Record<string, boolean>>({});
-
-    // ===== Selected Upsales =====
     const [selectedUpsales, setSelectedUpsales] = useState<Record<string, string>>({});
 
-    // ===== Fetch data =====
     useEffect(() => {
         (async () => {
             const base = await fetch('/api/options').then(r => r.json());
@@ -110,10 +245,27 @@ export default function FastBuy() {
                 if (!paymentMethod && pm.methods[0]) setPaymentMethod(pm.methods[0].id);
             }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ===== Resolve current variant =====
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const sp = new URLSearchParams(window.location.search);
+        const qpPromo = sp.get('promo');
+        const qpPlatform = sp.get('platform');
+        const qpChallenge = sp.get('challenge');
+        const qpCapital = sp.get('capital');
+
+        if (qpPromo) setPromo(qpPromo);
+
+        if (qpPlatform && platforms.includes(qpPlatform)) setPlatform(qpPlatform);
+        if (qpChallenge && challenges.includes(qpChallenge)) setChallenge(qpChallenge);
+
+        if (qpCapital) {
+            const cNum = Number(qpCapital);
+            if (!Number.isNaN(cNum) && capitals.includes(cNum)) setCapital(cNum);
+        }
+    }, [platforms, challenges, capitals]);
+
     const current = useMemo(() => {
         const candidates = catalog.filter(
             (i) =>
@@ -133,114 +285,88 @@ export default function FastBuy() {
 
     const currentChallengeTypeId = current?.challengeTypeId || '';
 
-    // Сброс цены промо при смене варианта
     useEffect(() => {
         setPromoPrice(null);
         setPromoError(false);
         setPromoHint('');
     }, [currentChallengeTypeId]);
 
-    // ===== Upsales grouped for current variant =====
+    // helper: формат "+$22" или "+$13.2"
+    function fmtPlusUsd(n?: number | null) {
+        if (n == null || !isFinite(n)) return '';
+        const s = Number.isInteger(n) ? String(n) : n.toFixed(1);
+        return ` (+$${s})`;
+    }
+
     const upsalesByCondition = useMemo(() => {
-        const map = new Map<string, { label: string; options: { id: string; text: string }[] }>();
+        const groups = new Map<string, { label: string; options: { id: string; text: string }[] }>();
+
+        // релевантные апсейлы под текущий challengeTypeId
         const relevant = upsales.filter(
             (u) =>
                 u.challengeTypeId === currentChallengeTypeId ||
                 (u.values || []).some((v) => v.challengeTypeId === currentChallengeTypeId)
         );
+
+        const seen = new Set<string>(); // чтобы не пускать дубли
+
         for (const u of relevant) {
             const label = UPSALE_LABEL[u.condition] || u.condition;
-            const text = u.title + (typeof u.price === 'number' ? ` (+$${u.price})` : '');
-            if (!map.has(u.condition)) map.set(u.condition, { label, options: [] });
-            map.get(u.condition)!.options.push({ id: u.id, text });
+
+            const vMatch = (u.values || []).find((v) => v.challengeTypeId === currentChallengeTypeId);
+            const valuePart =
+                vMatch && vMatch.value !== undefined && vMatch.value !== null && vMatch.value !== ''
+                    ? ` = ${vMatch.value}`
+                    : '';
+
+            const baseTitle = (u.title || label).trim();
+            const priceNum = typeof u.price === 'number' ? u.price : null;
+
+            const text = `${baseTitle}${valuePart}${fmtPlusUsd(priceNum)}`;
+
+            const dedupeKey = [
+                u.condition,
+                baseTitle.toLowerCase(),
+                String(vMatch?.value ?? ''),
+                priceNum ?? ''
+            ].join('|');
+
+            if (seen.has(dedupeKey)) continue;
+            seen.add(dedupeKey);
+
+            if (!groups.has(u.condition)) {
+                groups.set(u.condition, { label, options: [] });
+            }
+            groups.get(u.condition)!.options.push({ id: u.id, text });
         }
-        for (const group of map.values()) {
-            group.options.sort((a, b) => a.text.localeCompare(b.text));
-            group.options.unshift({ id: '', text: 'Select' });
+
+        for (const g of groups.values()) {
+            g.options.sort((a, b) => a.text.localeCompare(b.text));
+            g.options.unshift({ id: '', text: 'Select' });
         }
-        return map;
+
+        return groups;
     }, [upsales, currentChallengeTypeId]);
 
-    // ===== Helpers =====
-    function platformLabel(p: string) {
-        if (p?.toUpperCase() === 'MT5') return 'Meta Trader 5';
-        if (p?.toUpperCase() === 'MATCHTRADER') return 'Match-Trader';
-        return p;
-    }
 
-    function formatMoneyShort(n: number) {
-        if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(n % 1_000_000_000 ? 1 : 0)}b`;
-        if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)}m`;
-        if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 ? (n < 10_000 ? 1 : 0) : 0)}k`;
-        return `${n}`;
-    }
-
-    function fmtUsd(x: number | string | null | undefined) {
-        if (x == null || x === '') return '—';
-        const n = typeof x === 'string' ? Number(x) : x;
-        if (!isFinite(n)) return String(x);
-        return `$${formatMoneyShort(n)}`;
-    }
-
-    function fmtDays(x: number | string | null | undefined) {
-        if (x == null || x === '') return '—';
-        const n = typeof x === 'string' ? Number(x) : x;
-        if (!isFinite(n)) return String(x);
-        return `${n} day${Number(n) === 1 ? '' : 's'}`;
-    }
-
-
-    function formatK(n: number) {
-        if (n >= 1000) return `${Math.round(n / 1000)}k`;
-        return `${n}`;
-    }
-
-
-
-
-    // ===== Price (promo-aware) =====
-    const totalAmount = useMemo(() => {
-        let base = promoPrice ?? (typeof current?.price === 'number' ? current.price : (capital ?? 0));
-        for (const upsaleId of Object.values(selectedUpsales)) {
-            if (!upsaleId) continue;
-            const u = upsales.find(x => x.id === upsaleId);
-            if (u && typeof u.price === 'number') base += u.price;
-        }
-        return Math.round(base);
-    }, [promoPrice, current, capital, selectedUpsales, upsales]);
-
-    const totalPrice = useMemo(() => {
-        return `$${totalAmount}`; // остальным частям кода оставляем как было
-    }, [totalAmount]);
-
-    // ===== Validation =====
     function computeErrors() {
         const e: Record<string, string> = {};
-
         if (!firstName.trim()) e.firstName = 'First name is required.';
         if (!lastName.trim()) e.lastName = 'Last name is required.';
-
         const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!email.trim()) e.email = 'Email is required.';
         else if (!emailRe.test(email)) e.email = 'Enter a valid email address';
-
         const phoneRe = /^[\d\s+().-]{7,}$/;
         if (!phone.trim()) e.phone = 'Phone is required.';
         else if (!phoneRe.test(phone)) e.phone = 'Enter a valid phone number';
-
         if (!country) e.country = 'Select a country';
-
         const passRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*\-]).{8,}$/;
         if (!password) e.password = 'Password is required.';
-        else if (!passRe.test(password))
-            e.password = 'Min 8 chars, uppercase, lowercase, number and special (!@#$%^&*-)';
-
+        else if (!passRe.test(password)) e.password = 'Min 8 chars, uppercase, lowercase, number and special (!@#$%^&*-)';
         if (!password2) e.password2 = 'Confirm your password';
         else if (password2 !== password) e.password2 = 'Passwords do not match';
-
         if (!paymentMethod) e.paymentMethod = 'Select a payment method';
         if (!agree) e.agree = 'You must accept Terms and Conditions';
-
         return e;
     }
 
@@ -251,44 +377,43 @@ export default function FastBuy() {
 
     useEffect(() => {
         setErrors(computeErrors());
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firstName, lastName, email, phone, country, password, password2, paymentMethod, agree]);
 
-    const markTouched = (name: string) =>
-        setTouched((p) => ({ ...p, [name]: true }));
-
+    const markTouched = (name: string) => setTouched((p) => ({ ...p, [name]: true }));
     const showError = (name: string) => !!errors[name] && !!touched[name];
 
-    // ===== Neighbour variants for the table (1 Step / 2 Step / XFINE Master) =====
     const basePlatform = useMemo(
         () => (platform === 'ALL' ? current?.platform : platform),
         [platform, current?.platform]
     );
 
     const v1 = useMemo(
-        () => catalog.find(v =>
-            v.platform === basePlatform &&
-            v.capital === capital &&
-            (v.challenge?.toUpperCase().includes('1') || v.challenge?.toUpperCase().includes('ONE'))
-        ),
+        () =>
+            catalog.find(
+                (v) =>
+                    v.platform === basePlatform &&
+                    v.capital === capital &&
+                    (v.challenge?.toUpperCase().includes('1') || v.challenge?.toUpperCase().includes('ONE'))
+            ),
         [catalog, basePlatform, capital]
     );
 
     const v2 = useMemo(
-        () => catalog.find(v =>
-            v.platform === basePlatform &&
-            v.capital === capital &&
-            v.challenge?.toUpperCase().includes('2')
-        ),
+        () =>
+            catalog.find(
+                (v) => v.platform === basePlatform && v.capital === capital && v.challenge?.toUpperCase().includes('2')
+            ),
         [catalog, basePlatform, capital]
     );
 
     const vMaster = useMemo(
-        () => catalog.find(v =>
-            v.platform === basePlatform &&
-            v.capital === capital &&
-            /(MASTER|MASTERS?|XFINE\s*MASTER|PHASE\s*3|3\s*PHASE)/i.test(v.challenge || '')
-        ),
+        () =>
+            catalog.find(
+                (v) =>
+                    v.platform === basePlatform &&
+                    v.capital === capital &&
+                    /(MASTER|MASTERS?|XFINE\s*MASTER|PHASE\s*3|3\s*PHASE)/i.test(v.challenge || '')
+            ),
         [catalog, basePlatform, capital]
     );
 
@@ -296,42 +421,18 @@ export default function FastBuy() {
         return item ? item[key] : null;
     }
 
-    // ===== Banner config by phase (class + image + texts) =====
-    const banner = useMemo(() => {
-        const ch = (challenge || '').toUpperCase();
-        // Маппинг:
-        // 1 Step / 1 Phase → Basic (slow.svg)
-        // 2 Step / 2 Phase → Stealth (mid.svg)
-        // Master           → Cosmo (fast.svg)
-        if (/(MASTER|MASTERS?|XFINE\s*MASTER|PHASE\s*3|3\s*PHASE)/i.test(challenge || '')) {
-            return {
-                className: 'plan-banner--cosmo',
-                img: 'https://propxfine.com/wp-content/uploads/2025/08/fast.svg',
-                title: 'Cosmo',
-                text: 'Get ahead of the action with cosmic speed',
-            };
+    const totalPrice = useMemo(() => {
+        let base = promoPrice ?? (typeof current?.price === 'number' ? current.price : (capital ?? 0));
+        for (const upsaleId of Object.values(selectedUpsales)) {
+            if (!upsaleId) continue;
+            const u = upsales.find((x) => x.id === upsaleId);
+            if (u && typeof u.price === 'number') base += u.price;
         }
-        if (ch.includes('2')) {
-            return {
-                className: 'plan-banner--stealth',
-                img: 'https://propxfine.com/wp-content/uploads/2025/08/mid.svg',
-                title: 'Stealth',
-                text: 'Seien Sie schneller als der Markt',
-            };
-        }
-        // по умолчанию — 1 Step / Basic
-        return {
-            className: 'plan-banner--basic',
-            img: 'https://propxfine.com/wp-content/uploads/2025/08/slow.svg',
-            title: 'Basic',
-            text: 'Move towards yours goals without haste',
-        };
-    }, [challenge]);
+        return `$${Math.round(base)}`;
+    }, [promoPrice, current, capital, selectedUpsales, upsales]);
 
-    // ===== Actions =====
     async function applyPromo() {
         setPromoError(false);
-
         if (!currentChallengeTypeId) {
             setPromoHint('Select Platform / Challenge / Capital first');
             setPromoError(true);
@@ -342,7 +443,6 @@ export default function FastBuy() {
             setPromoError(true);
             return;
         }
-
         try {
             const res = await fetch('/api/promo', {
                 method: 'POST',
@@ -350,14 +450,12 @@ export default function FastBuy() {
                 body: JSON.stringify({ challengeTypeId: currentChallengeTypeId, promoCode: promo.trim() }),
             });
             const data = await res.json();
-
             if (!res.ok || !data?.ok || typeof data?.price !== 'number') {
                 setPromoHint(data?.error || 'Promo code is invalid');
                 setPromoError(true);
                 setPromoPrice(null);
                 return;
             }
-
             setPromoPrice(data.price);
             setPromoHint(`Promo applied. New price: $${data.price}`);
             setPromoError(false);
@@ -371,9 +469,15 @@ export default function FastBuy() {
     async function checkout() {
         if (!isFormValid) {
             setTouched({
-                firstName: true, lastName: true, email: true, phone: true,
-                country: true, password: true, password2: true,
-                paymentMethod: true, agree: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+                country: true,
+                password: true,
+                password2: true,
+                paymentMethod: true,
+                agree: true,
             });
             return;
         }
@@ -381,8 +485,6 @@ export default function FastBuy() {
             alert('Select valid Platform/Challenge/Capital');
             return;
         }
-
-        // Итоговая сумма
         let amount = promoPrice ?? (typeof current?.price === 'number' ? current.price : (capital ?? 0));
         for (const upsaleId of Object.values(selectedUpsales)) {
             if (!upsaleId) continue;
@@ -393,13 +495,11 @@ export default function FastBuy() {
             alert('Unable to calculate amount');
             return;
         }
-
         const pmObj = methods.find((m) => m.id === paymentMethod);
         if (!pmObj) {
             alert('Select a payment method');
             return;
         }
-
         const res = await fetch('/api/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -409,8 +509,14 @@ export default function FastBuy() {
                     promo: promo || null,
                 },
                 customer: {
-                    firstName, lastName, email, phone, country, language,
-                    password, confirmPassword: password2,
+                    firstName,
+                    lastName,
+                    email,
+                    phone,
+                    country,
+                    language,
+                    password,
+                    confirmPassword: password2,
                 },
                 payment: {
                     merchantId: pmObj.merchantId,
@@ -423,7 +529,6 @@ export default function FastBuy() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || 'Checkout failed');
-
         if (data?.redirectUrl) {
             window.location.href = data.redirectUrl;
         } else if (data?.successUrl || data?.pendingUrl || data?.errorUrl) {
@@ -433,9 +538,30 @@ export default function FastBuy() {
         }
     }
 
+    const banner = getBannerInfo(challenge);
+    const bannerPrice = capital ? `$${shortK(capital)}` : '—';
+
+    const availableCapitalsSet = useMemo(() => {
+        const set = new Set<number>();
+        const rows = catalog.filter(
+            (v) =>
+                (platform === 'ALL' ? v.platform === current?.platform : v.platform === platform) &&
+                (!challenge || v.challenge === challenge)
+        );
+        for (const r of rows) {
+            const hasData =
+                r.permittedDailyLoss != null ||
+                r.permittedTotalLoss != null ||
+                r.profitableDays != null ||
+                r.duration != null ||
+                typeof r.price === 'number';
+            if (hasData) set.add(r.capital);
+        }
+        return set;
+    }, [catalog, platform, challenge, current?.platform]);
+
     return (
         <div className="challenge-buy">
-            {/* OPTIONS */}
             <div className="challenge-buy__options">
                 <div className="challenge-buy__title">Platform</div>
                 <div className="challenge-buy__options-group" id="platform-group">
@@ -492,33 +618,35 @@ export default function FastBuy() {
                 <div className="challenge-buy__options-group" id="capital-group">
                     {capitals.map((cap) => {
                         const id = `money-${cap}`;
+                        const disabled = !availableCapitalsSet.has(cap);
                         return (
-                            <div className="challenge-buy__options-input" key={cap}>
+                            <div className={`challenge-buy__options-input ${disabled ? 'is-inactive' : ''}`} key={cap}>
                                 <input
                                     type="radio"
                                     name="trade"
                                     id={id}
                                     value={cap}
                                     checked={capital === cap}
-                                    onChange={() => setCapital(cap)}
+                                    onChange={() => !disabled && setCapital(cap)}
+                                    disabled={disabled}
                                 />
-                                <label htmlFor={id} title={`$${cap.toLocaleString()}`}>${formatMoneyShort(cap)}</label>
+                                <label htmlFor={id} title={`$${cap.toLocaleString()}`}>
+                                    ${formatMoneyShort(cap)}
+                                </label>
                             </div>
                         );
                     })}
                 </div>
 
-                {/* PLAN BANNER (динамический по фазе) */}
-                <div className={`plan-banner ${banner.className}`}>
+                <div className={`plan-banner ${banner.cls}`}>
                     <img src={banner.img} alt="" />
                     <div>
                         <div className="secondary-text-alt">{banner.title}</div>
                         <div className="body-text">{banner.text}</div>
                     </div>
-                    <div className="heading-4">{totalPrice}</div>
+                    <div className="heading-4">{bannerPrice}</div>
                 </div>
 
-                {/* DYNAMIC TABLE */}
                 <div className="challenge-buy__table">
                     <div className="challenge-buy__table-inner">
                         <div className="challenge-buy__table-row challenge-buy__table-header">
@@ -533,7 +661,7 @@ export default function FastBuy() {
                                 Max Loss per day
                                 <div className="tooltip" aria-hidden="true">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M12 2.25C14.5859 2.25 17.0661 3.27699 18.8945 5.10547C20.723 6.93395 21.75 9.41414 21.75 12C21.75 13.2804 21.4978 14.5485 21.0078 15.7314C20.5178 16.9143 19.7998 17.9892 18.8945 18.8945C17.9892 19.7998 16.9143 20.5178 15.7314 21.0078C14.6964 21.4365 13.5961 21.6833 12.4795 21.7383L12 21.75C10.7196 21.75 9.45148 21.4978 8.26855 21.0078C7.08573 20.5178 6.01078 19.7998 5.10547 18.8945C4.20016 17.9892 3.48217 16.9143 2.99219 15.7314C2.5022 14.5485 2.25 13.2804 2.25 12C2.25 9.41414 3.27699 6.93395 5.10547 5.10547C6.93395 3.27699 9.41414 2.25 12 2.25ZM12 3.75C9.81196 3.75 7.71319 4.61884 6.16602 6.16602C4.61884 7.71319 3.75 9.81196 3.75 12C3.75 13.0834 3.96333 14.1563 4.37793 15.1572C4.79253 16.1581 5.39995 17.0679 6.16602 17.834C6.93209 18.6001 7.84186 19.2075 8.84277 19.6221C9.84371 20.0367 10.9166 20.25 12 20.25L12.4053 20.2402C13.3502 20.1938 14.2813 19.9849 15.1572 19.6221C16.1581 19.2075 17.0679 18.6001 17.834 17.834C18.6001 17.0679 19.2075 16.1581 19.6221 15.1572C20.0367 14.1563 20.25 13.0834 20.25 12C20.25 9.81196 19.3812 7.71319 17.834 6.16602C16.2868 4.61884 14.188 3.75 12 3.75ZM12.0771 11.2539C12.4551 11.2925 12.75 11.6118 12.75 12V15.25H13C13.4142 15.25 13.75 15.5858 13.75 16C13.75 16.4142 13.4142 16.75 13 16.75H12C11.586 16.7498 11.25 16.4141 11.25 16V12.75H11C10.586 12.7498 10.25 12.4141 10.25 12C10.25 11.5859 10.586 11.2502 11 11.25H12L12.0771 11.2539ZM12.0098 8.25C12.424 8.25 12.7598 8.58579 12.7598 9C12.7598 9.41421 12.424 9.75 12.0098 9.75H12C11.5858 9.75 11.25 9.41421 11.25 9C11.25 8.58579 11.5858 8.25 12 8.25H12.0098Z" fill="#B5B5B5"></path>
+                                        <path d="M12 2.25C14.5859 2.25 17.0661 3.27699 18.8945 5.10547C20.723 6.93395 21.75 9.41414 21.75 12C21.75 13.2804 21.4978 14.5485 21.0078 15.7314C20.5178 16.9143 19.7998 17.9892 18.8945 18.8945C17.9892 19.7998 16.9143 20.5178 15.7314 21.0078C14.6964 21.4365 13.5961 21.6833 12.4795 21.7383L12 21.75C10.7196 21.75 9.45148 21.4978 8.26855 21.0078C7.08573 20.5178 6.01078 19.7998 5.10547 18.8945C4.20016 17.9892 3.48217 16.9143 2.99219 15.7314C2.5022 14.5485 2.25 13.2804 2.25 12C2.25 9.41414 3.27699 6.93395 5.10547 5.10547C6.93395 3.27699 9.41414 2.25 12 2.25Z" fill="#B5B5B5"></path>
                                     </svg>
                                     <div className="tooltip-content">Permitted Daily Loss</div>
                                 </div>
@@ -574,12 +702,8 @@ export default function FastBuy() {
                 </div>
             </div>
 
-            {/* ADDITIONAL OPTIONS (Upsales + Promo) */}
             <div className="challenge-buy__add-options">
-                <div className="challenge-buy__title">Additional Options <svg width="12" height="22" viewBox="0 0 12 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 14H0L7 0V8H12L5 22V14Z" fill="#EAAA08" />
-                </svg>
-                </div>
+                <div className="challenge-buy__title">Additional Options</div>
 
                 <div className="promo-wrap">
                     <div className={`input-wrapper ${promoError ? 'invalid' : ''}`}>
@@ -591,7 +715,11 @@ export default function FastBuy() {
                                 placeholder="Enter the Code"
                                 autoComplete="off"
                                 value={promo}
-                                onChange={(e) => { setPromo(e.target.value); setPromoError(false); setPromoHint(''); }}
+                                onChange={(e) => {
+                                    setPromo(e.target.value);
+                                    setPromoError(false);
+                                    setPromoHint('');
+                                }}
                                 onBlur={() => setTouched((t) => ({ ...t, promo: true }))}
                                 aria-invalid={promoError}
                             />
@@ -610,12 +738,10 @@ export default function FastBuy() {
 
                 {[...upsalesByCondition.entries()].map(([condition, group]) => (
                     <div className="challange-buy__select-wrap" key={condition}>
-                        <span className='label'>{group.label}</span>
+                        <span className="label">{group.label}</span>
                         <select
                             value={selectedUpsales[condition] || ''}
-                            onChange={(e) =>
-                                setSelectedUpsales((prev) => ({ ...prev, [condition]: e.target.value }))
-                            }
+                            onChange={(e) => setSelectedUpsales((prev) => ({ ...prev, [condition]: e.target.value }))}
                         >
                             {group.options.map((o) => (
                                 <option key={o.id || 'none'} value={o.id}>
@@ -626,25 +752,28 @@ export default function FastBuy() {
                     </div>
                 ))}
 
-                <div className='checkbox'>
+                <div className="checkbox">
                     <input type="checkbox" name="sub" id="sub" />
                     <label htmlFor="sub">Get Subscription for Trading News</label>
                 </div>
 
-                <div className='checkbox'>
+                <div className="checkbox">
                     <input type="checkbox" name="allow" id="allow" />
                     <label htmlFor="allow">Allow to Trade on Weekends</label>
                 </div>
 
                 <div className="total">
                     <span>Total Price:</span>
-                    <div className="price" id="total-price">{totalPrice}</div>
+                    <div className="price" id="total-price">
+                        {totalPrice}
+                    </div>
                 </div>
             </div>
 
-            {/* DETAILS */}
             <div className="challenge-buy__details" role="form" aria-labelledby="acc-details-title">
-                <div className="challenge-buy__title" id="acc-details-title">Account Details</div>
+                <div className="challenge-buy__title" id="acc-details-title">
+                    Account Details
+                </div>
 
                 <div className="input-row">
                     <div className={`input-wrapper ${showError('firstName') ? 'invalid' : ''}`}>
@@ -657,7 +786,10 @@ export default function FastBuy() {
                             autoComplete="given-name"
                             required
                             value={firstName}
-                            onChange={(e) => { setFirstName(e.target.value); setErrors(computeErrors()); }}
+                            onChange={(e) => {
+                                setFirstName(e.target.value);
+                                setErrors(computeErrors());
+                            }}
                             onBlur={() => markTouched('firstName')}
                             aria-invalid={showError('firstName')}
                         />
@@ -674,7 +806,10 @@ export default function FastBuy() {
                             autoComplete="family-name"
                             required
                             value={lastName}
-                            onChange={(e) => { setLastName(e.target.value); setErrors(computeErrors()); }}
+                            onChange={(e) => {
+                                setLastName(e.target.value);
+                                setErrors(computeErrors());
+                            }}
                             onBlur={() => markTouched('lastName')}
                             aria-invalid={showError('lastName')}
                         />
@@ -693,7 +828,10 @@ export default function FastBuy() {
                             autoComplete="email"
                             required
                             value={email}
-                            onChange={(e) => { setEmail(e.target.value); setErrors(computeErrors()); }}
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                setErrors(computeErrors());
+                            }}
                             onBlur={() => markTouched('email')}
                             aria-invalid={showError('email')}
                         />
@@ -710,7 +848,10 @@ export default function FastBuy() {
                             autoComplete="tel"
                             required
                             value={phone}
-                            onChange={(e) => { setPhone(e.target.value); setErrors(computeErrors()); }}
+                            onChange={(e) => {
+                                setPhone(e.target.value);
+                                setErrors(computeErrors());
+                            }}
                             onBlur={() => markTouched('phone')}
                             aria-invalid={showError('phone')}
                         />
@@ -725,29 +866,31 @@ export default function FastBuy() {
                             id="country"
                             required
                             value={country}
-                            onChange={(e) => { setCountry(e.target.value); setErrors(computeErrors()); }}
+                            onChange={(e) => {
+                                setCountry(e.target.value);
+                                setErrors(computeErrors());
+                            }}
                             onBlur={() => markTouched('country')}
                             aria-invalid={showError('country')}
                         >
                             <option value="">Select Country</option>
-                            <option value="UA">Ukraine</option>
-                            <option value="PL">Poland</option>
-                            <option value="US">United States</option>
-                            <option value="GB">United Kingdom</option>
+                            {COUNTRIES.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                    {c.name}
+                                </option>
+                            ))}
                         </select>
                         {showError('country') && <span className="error">{errors.country}</span>}
                     </div>
 
                     <div className="input-wrapper">
                         <span className="label">Language</span>
-                        <select
-                            id="language"
-                            value={language}
-                            onChange={(e) => setLanguage(e.target.value)}
-                        >
-                            <option value="en">English</option>
-                            <option value="uk">Українська</option>
-                            <option value="ru">Русский</option>
+                        <select id="language" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                            {LANGS.map((l) => (
+                                <option key={l.code} value={l.code}>
+                                    {l.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
                 </div>
@@ -763,7 +906,10 @@ export default function FastBuy() {
                             autoComplete="new-password"
                             required
                             value={password}
-                            onChange={(e) => { setPassword(e.target.value); setErrors(computeErrors()); }}
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                setErrors(computeErrors());
+                            }}
                             onBlur={() => markTouched('password')}
                             aria-invalid={showError('password')}
                         />
@@ -780,7 +926,10 @@ export default function FastBuy() {
                             autoComplete="new-password"
                             required
                             value={password2}
-                            onChange={(e) => { setPassword2(e.target.value); setErrors(computeErrors()); }}
+                            onChange={(e) => {
+                                setPassword2(e.target.value);
+                                setErrors(computeErrors());
+                            }}
                             onBlur={() => markTouched('password2')}
                             aria-invalid={showError('password2')}
                         />
@@ -795,13 +944,18 @@ export default function FastBuy() {
                             id="payment-method"
                             required
                             value={paymentMethod}
-                            onChange={(e) => { setPaymentMethod(e.target.value); setErrors(computeErrors()); }}
+                            onChange={(e) => {
+                                setPaymentMethod(e.target.value);
+                                setErrors(computeErrors());
+                            }}
                             onBlur={() => markTouched('paymentMethod')}
                             aria-invalid={showError('paymentMethod')}
                         >
                             <option value="">Select method</option>
                             {methods.map((m) => (
-                                <option key={m.id} value={m.id}>{m.title}</option>
+                                <option key={m.id} value={m.id}>
+                                    {m.title}
+                                </option>
                             ))}
                         </select>
                         {showError('paymentMethod') && <span className="error">{errors.paymentMethod}</span>}
@@ -816,7 +970,10 @@ export default function FastBuy() {
                             name="agree"
                             id="agree"
                             checked={agree}
-                            onChange={(e) => { setAgree(e.target.checked); setErrors(computeErrors()); }}
+                            onChange={(e) => {
+                                setAgree(e.target.checked);
+                                setErrors(computeErrors());
+                            }}
                             onBlur={() => markTouched('agree')}
                             aria-invalid={showError('agree')}
                             required

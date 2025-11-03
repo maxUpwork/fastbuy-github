@@ -437,6 +437,12 @@ body {
   display: none
 }
 
+.challenge-buy__options-input input:disabled+label {
+  cursor: none;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 .challenge-buy__options-input label {
   cursor: pointer;
   font-family: Unbounded;
