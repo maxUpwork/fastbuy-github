@@ -23,6 +23,7 @@ body {
   width: 100%;
   z-index: 15;
   transition: 0.2s linear;
+  padding-top: 24px;
 }
 
 
@@ -214,8 +215,152 @@ body {
   gap: 8px;
   border-radius: 12px;
   background: var(--Toxic-Green-400, #b6f802);
-  text-decoration: none
+  text-decoration: none;
+  width: 100%;
 }
+
+
+.heading-1 {
+  font-family: var(--font-unbounded);
+  font-weight: 500;
+  font-size: 90px;
+  line-height: 100%
+}
+
+@media (max-width:991px) {
+  .heading-1 {
+    font-size: 42px
+  }
+}
+
+.heading-2 {
+  font-family: var(--font-unbounded);
+  font-weight: 400;
+  font-size: 64px;
+  line-height: 120%;
+  letter-spacing: -3%
+}
+
+@media (max-width:991px) {
+  .heading-2 {
+    font-size: 32px
+  }
+}
+
+.heading-3 {
+  color: #f4f4f6;
+  font-family: var(--font-manrope);
+  font-size: 64px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 120%;
+  letter-spacing: -1.92px
+}
+
+@media (max-width:991px) {
+  .heading-3 {
+    font-size: 24px
+  }
+}
+
+.heading-4 {
+  color: #fff;
+  font-family: Unbounded !important;
+  font-size: 34px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 100%;
+  margin-left: auto;
+}
+
+@media (max-width:991px) {
+  .heading-4 {
+    font-size: 20px
+  }
+}
+
+.heading-5 {
+  font-family: var(--font-manrope);
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 130%;
+  letter-spacing: -.72px
+}
+
+@media (max-width:991px) {
+  .heading-5 {
+    font-size: 18px
+  }
+}
+
+.subheading {
+  font-family: var(--font-manrope);
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 130%;
+  letter-spacing: -3%
+}
+
+@media (max-width:991px) {
+  .subheading {
+    font-size: 20px
+  }
+}
+
+.body-text {
+  font-family: var(--font-manrope);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 130%
+}
+
+@media (max-width:991px) {
+  .body-text {
+    font-size: 14px
+  }
+}
+
+.secondary-text {
+  font-family: var(--font-manrope);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 130%
+}
+
+.secondary-text-alt {
+  font-family: Unbounded !important;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 130%;
+  margin-bottom: 6px;
+}
+
+@media (max-width:991px) {
+  .secondary-text-alt {
+    font-size: 14px
+  }
+}
+
+.plan-banner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  color: #fff;
+  padding: 16px;
+  border-radius: var(--12, 12px);
+  background: #514d13;
+  margin: 30px 0;
+}
+
+.plan-banner--basic {
+  background: #302B25;
+}
+
+.plan-banner--stealth {
+  background: #363636;
+}
+
 
 .button:hover {
   background: var(--Toxic-Green-400, #c0fd17)
@@ -261,7 +406,10 @@ body {
   font-style: normal;
   font-weight: 500;
   line-height: 130%;
-  margin-bottom: 24px
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .challenge-buy__options-group {
@@ -666,6 +814,7 @@ button[aria-disabled="true"] {
   outline: none;
   border: none;
   height: 54px;
+  width: max-content !important;
 }
 
 .total {
@@ -761,5 +910,92 @@ button[aria-disabled="true"] {
   }
 
 }
+
+
+
+
+.footer {
+  padding: 50px 0
+}
+
+.footer__main {
+  display: grid;
+  grid-template-columns: 200px 1fr 200px;
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+@media (max-width:767px) {
+  .footer__main {
+    grid-template-columns: 1fr;
+    gap: 32px
+  }
+
+  .call-to-action__inner {
+    padding: 32px 24px;
+  }
+}
+
+.footer__col-title {
+  margin-bottom: 24px
+}
+
+.footer__col-main .secondary-text {
+  margin: 24px 0;
+  color: #fff;
+}
+
+.footer__col-main .footer-email {
+  padding: 4px 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 12px;
+  background: var(--Cold-grey-70, #363636);
+  text-decoration: none;
+  color: #fff;
+  width: -moz-max-content;
+  width: max-content
+}
+
+.footer__col-menu {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+
+.footer__col-menu a {
+  text-decoration: none;
+  color: #fff;
+}
+
+.footer__col-menu a:hover {
+  color: #B6F802;
+}
+
+.footer__col-socials {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+}
+
+
+.footer__col-socials img {
+  width: 48px;
+  height: 48px;
+}
+
+.footer__col-socials a:hover {
+  border-color: var(--toxic-green-100);
+}
+
+.footer__text {
+  color: #fff;
+}
+
 
 /*# sourceMappingURL=main.min.css.map */
