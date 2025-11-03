@@ -177,14 +177,33 @@ export default function FastBuy() {
         return `${n} day${Number(n) === 1 ? '' : 's'}`;
     }
 
+    const usdNoGroup = new Intl.NumberFormat(undefined, {
+        useGrouping: false,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    });
+    function formatUSD(n: number) {
+        return `$${usdNoGroup.format(n)}`;
+    }
+
     const totalPrice = useMemo(() => {
-        let base = promoPrice ?? (typeof current?.price === 'number' ? current.price : (capital ?? 0));
+        // базовая цена -> в центы
+        const baseRaw =
+            promoPrice ??
+            (typeof current?.price === "number" ? current.price : (capital ?? 0));
+
+        let cents = Math.round((baseRaw || 0) * 100);
+
         for (const upsaleId of Object.values(selectedUpsales)) {
             if (!upsaleId) continue;
-            const u = upsales.find(x => x.id === upsaleId);
-            if (u && typeof u.price === 'number') base += u.price;
+            const u = upsales.find((x) => x.id === upsaleId);
+            if (u && typeof u.price === "number" && isFinite(u.price)) {
+                cents += Math.round(u.price * 100);
+            }
         }
-        return `$${base}`;
+
+        const total = cents / 100;
+        return formatUSD(total);
     }, [promoPrice, current, capital, selectedUpsales, upsales]);
 
     function computeErrors() {
